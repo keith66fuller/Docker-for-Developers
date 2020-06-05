@@ -50,10 +50,6 @@ const deploy = (id) => {
 	})
     );
 
-    const delay = random_gaussian(175, 50) / 1000000;
-
-    console.log(`delay: ${delay}`);
-    sleep(random_gaussian(175, 50) / 1000000);
 };
 
 export default function() {
@@ -73,8 +69,10 @@ export default function() {
     console.log(`Simulating ${MOVES} moves for game ID '${GAMEID}'`);
 
     for (let i = 0; i < MOVES; i++) {
-    	console.log(` move #${i}`);
+      const delay = random_gaussian(175, 50) / 1000;
+    	console.log(` move #${i}, then sleep ${delay}s`);
     	deploy(GAMEID);
+      sleep(delay);
     }
     console.log("DONE\n");
 }
