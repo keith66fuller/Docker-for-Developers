@@ -1,5 +1,5 @@
 /*
- *Test script for k6.io docker container.
+ * Test script for k6.io docker container.
  *
  * This script mimics a human playng the game:
  * 1) Fetching the html, stylesheets, images, and JavaScript files that make up the application.
@@ -14,21 +14,11 @@ import { sleep } from "k6";
 
 // Number of moves/clicks to simulate
 const MOVES = __ENV.MOVES;
+const target = __ENV.TARGET;
+console.log(`Testing $target`);
 
-const urlBase = `http://${__ENV.HOSTADDR}`;
-console.log(urlBase);
-
-// possible other URLs:
-//  const url = `http://shipitclicker.com`;
-//  const url = `http://2b467a35-default-shipitcli-f0dc-1451164445.us-east-2.elb.amazonaws.com/`;
-
-//
 // Box-Muller transform to normalize random number distribution.
-// from https://stackoverflow.com/a/49434653
-//
-// NOTE: the more CPU time we use in our VU, the more of a drag it is on the tests
-// when running many VUs
-//
+// Thanks https://stackoverflow.com/a/49434653
 function randn_bm() {
     let u = 0, v = 0;
     while(u === 0) u = Math.random(); //Converting [0,1) to (0,1)
@@ -39,9 +29,12 @@ function randn_bm() {
     return num;
 }
 
+const random_gaussian = (mean,variance) =>  
+  mean + (variance * (randn_bm() - 0.5) / 0.0627);
+
 const deploy = (id) => {
     http.patch(
-	`${urlBase}/api/v2/games/71o6wXE9kh9x_NHyWOy2M/deploys`,
+	`${target}/api/v2/games/${id}/deploys`,
 	JSON.stringify({
 	    id: id,
 	    element: "deploys",
@@ -49,7 +42,7 @@ const deploy = (id) => {
 	})
     );
     http.patch(
-	`${urlBase}/api/v2/games/71o6wXE9kh9x_NHyWOy2M/score`,
+	`${target}/api/v2/games/${id}/score`,
 	JSON.stringify({
 	    id: id,
 	    element: "score",
@@ -57,26 +50,25 @@ const deploy = (id) => {
 	})
     );
 
-    // sleep 175 milliseconds plus 0-50 random milliseconds more.
-    // this simulates clicking at about 5 clicks/second, or about what
-    // a human probably does when clicking as fast as possible.
-    const millis = (randn_bm() * 50 + 175) / 1000;
-    sleep(millis);
+    const delay = random_gaussian(175, 50) / 1000000;
+
+    console.log(`delay: ${delay}`);
+    sleep(random_gaussian(175, 50) / 1000000);
 };
 
 export default function() {
-    http.get(urlBase);
-    http.get(`${urlBase}/stylesheet.css`);
-    http.get(`${urlBase}/img/shipit-640x640-lc.jpg`);
-    http.get(`${urlBase}/img/ichard-Cartoon-Headshot-Jaunty-180x180.png`);
-    http.get(`${urlBase}/app.js`);
+    http.get(target);
+    http.get(`${target}/stylesheet.css`);
+    http.get(`${target}/img/shipit-640x640-lc.jpg`);
+    http.get(`${target}/img/ichard-Cartoon-Headshot-Jaunty-180x180.png`);
+    http.get(`${target}/app.js`);
     const headers = { 'Content-Type': 'application/json'};
-    const response = http.post(`${urlBase}/api/v2/games/`, {}, { headers: {'Content-Type' : 'application/json'}  });
+    const response = http.post(`${target}/api/v2/games/`, {}, { headers: {'Content-Type' : 'application/json'}  });
     const result = JSON.parse(response.body);
     const GAMEID = result.id;
-    http.get(`${urlBase}/api/v2/games/${GAMEID}/score`);
-    http.get(`${urlBase}/api/v2/games/${GAMEID}/deploys`);
-    http.get(`${urlBase}/api/v2/games/${GAMEID}/nextPurchase`);
+    http.get(`${target}/api/v2/games/${GAMEID}/score`);
+    http.get(`${target}/api/v2/games/${GAMEID}/deploys`);
+    http.get(`${target}/api/v2/games/${GAMEID}/nextPurchase`);
     
     console.log(`Simulating ${MOVES} moves for game ID '${GAMEID}'`);
 
